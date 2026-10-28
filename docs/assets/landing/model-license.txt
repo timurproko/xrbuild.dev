@@ -1,0 +1,46 @@
+Glass eyewear visual study — 3D asset attribution
+
+Original model: Sunglasses Khronos
+Artist: Eric Chadwick
+Copyright: 2024 Darmstadt Graphics Group GmbH
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+Full legal terms: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Source:
+https://github.com/KhronosGroup/glTF-Sample-Assets/tree/8f492390ddc7a2ae221a1369ef560589cf8c70fb/Models/SunglassesKhronos
+Original file SHA-256:
+25d72dd0869c99f94a3c0d6dfe0707714eca056e531f6ff77e7545719c86ab8c
+
+Changes for this site: original mesh geometry retained; source materials and logo
+textures replaced in the renderer with coated glass, metal and acetate finishes; interior lens mesh
+hidden; planar optical-coating UVs and an original animated thickness field added
+at runtime; scale, camera and lighting changed. Still images and social images are
+renders of this adapted asset. This is an eyewear visual study, not a model of an
+XR Build hardware product. No creator or manufacturer endorsement is implied.
+
+The original asset includes Khronos Group and 3D Commerce logo texture data.
+Those textures are not applied by this site. Logos and associated trademarks
+are excluded from the Creative Commons license and remain subject to their
+owners' trademark rights. Original logo notice:
+https://github.com/KhronosGroup/glTF-Sample-Assets/blob/8f492390ddc7a2ae221a1369ef560589cf8c70fb/LICENSES/LicenseRef-LegalMark-Khronos.txt
+
+Studio lighting environment
+Studio Small 08 by Sergej Majboroda / Poly Haven, CC0 1.0.
+Source: https://polyhaven.com/a/studio_small_08
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Downloaded 1K HDR MD5: de3ba64222895aca876b1d1c2e0cf81a
+SHA-256: f6a989f89432eb4eee3191364a9c1ceed195c4ec3544173a3c04fd96cb91d0ba
+Used as a locally bundled lighting environment, not remote runtime imagery.
+
+Locally hosted fonts
+Space Grotesk — SIL Open Font License 1.1.
+Source revision: google/fonts 00a38a53f92aef923b9353f40128e8f4552ddae4
+Archivo Black — SIL Open Font License 1.1.
+Source revision: google/fonts 94a7d81318e438525a5285e07ab72c050fdfeb44
+Full font copyright and license notices are included in
+/assets/landing/fonts/OFL.txt and /assets/landing/fonts/archivo-black-OFL.txt.
+
+The procedural optical-coating field and typography composition are original to
+this site. No reference-site footage, photography, interface screenshots or logos are
+used. No hardware specifications, sales or third-party endorsements are claimed.
