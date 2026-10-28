@@ -32,7 +32,7 @@ jobs:
     outputs:
       source: ${{ steps.source.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - id: source
@@ -46,7 +46,7 @@ jobs:
       - name: Issue short-lived read-only private core token
         if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
         id: private-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ vars.XRB_CORE_READ_APP_ID }}
           private-key: ${{ secrets.XRB_CORE_READ_APP_KEY }}
@@ -55,7 +55,7 @@ jobs:
           permission-contents: read
       - name: Checkout private core without saving credentials
         if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: timurproko/xrbuild
           ref: main
@@ -86,7 +86,7 @@ jobs:
           if [ "$OPERATION" = rehearse ]; then APP_ENTRY="$folder/dist" node scripts/dispatch.mjs rehearse publish "$PROJECT"; fi
       - name: Upload approved build for the deployment job
         if: inputs.operation == 'publish'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: approved-app
           path: projects/${{ inputs.project == 'ui-kit' && 'core/ui-kit' || 'apps/control-room' }}/dist/
@@ -106,12 +106,12 @@ jobs:
       pages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: true
       - name: Download approved build
         if: inputs.operation == 'publish'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: approved-app
           path: ${{ runner.temp }}/approved-app
@@ -125,13 +125,13 @@ jobs:
           PROJECT: ${{ inputs.project }}
         run: node scripts/dispatch.mjs stage "$OPERATION" "$PROJECT"
       - name: Upload complete Pages site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: docs/
       - name: Deploy complete Pages site
         id: first
         continue-on-error: true
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
       - name: Verify public site
         id: verify
         if: steps.first.outcome == 'success'
@@ -149,7 +149,7 @@ jobs:
         run: node scripts/dispatch.mjs rollback
       - name: Upload last-known-good site
         if: steps.rollback.outcome == 'success'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: docs/
           name: github-pages-rollback
@@ -157,7 +157,7 @@ jobs:
         if: steps.rollback.outcome == 'success'
         id: restored
         continue-on-error: true
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
         with:
           artifact_name: github-pages-rollback
       - name: Verify restored site
