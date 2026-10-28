@@ -96,6 +96,8 @@ async function rollback() {
 
 try {
   if (command === 'validate') {
+    if (process.env.REQUEST_ID && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(process.env.REQUEST_ID))
+      throw new Error('invalid panel request identifier');
     if (!['publish', 'unpublish', 'redeploy', 'rehearse'].includes(operation)) throw new Error('unknown workflow operation');
     if (operation !== 'redeploy') await project(root, key);
     if (operation === 'unpublish' && process.env.CONFIRM_REMOVAL !== 'true') throw new Error('Unpublish requires explicit confirmation');
