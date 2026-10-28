@@ -40,7 +40,9 @@ jobs:
       - name: Validate approved request and current site
         env:
           CONFIRM_REMOVAL: ${{ inputs.confirm_removal }}
-        run: node scripts/dispatch.mjs validate '${{ inputs.operation }}' '${{ inputs.project }}'
+          OPERATION: ${{ inputs.operation }}
+          PROJECT: ${{ inputs.project }}
+        run: node scripts/dispatch.mjs validate "$OPERATION" "$PROJECT"
       - name: Issue short-lived read-only private core token
         if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
         id: private-token
@@ -72,6 +74,7 @@ jobs:
         env:
           XRB_CORE: ${{ github.workspace }}/private-core
           PROJECT: ${{ inputs.project }}
+          OPERATION: ${{ inputs.operation }}
         run: |
           case "$PROJECT" in
             ui-kit) folder=projects/core/ui-kit ;;
@@ -80,7 +83,7 @@ jobs:
           esac
           corepack pnpm --dir "$folder" run build
           APP_ENTRY="$folder/dist" node scripts/dispatch.mjs check-build
-          if [ '${{ inputs.operation }}' = rehearse ]; then APP_ENTRY="$folder/dist" node scripts/dispatch.mjs rehearse publish "$PROJECT"; fi
+          if [ "$OPERATION" = rehearse ]; then APP_ENTRY="$folder/dist" node scripts/dispatch.mjs rehearse publish "$PROJECT"; fi
       - name: Upload approved build for the deployment job
         if: inputs.operation == 'publish'
         uses: actions/upload-artifact@v4
@@ -88,6 +91,7 @@ jobs:
           name: approved-app
           path: projects/${{ inputs.project == 'ui-kit' && 'core/ui-kit' || 'apps/control-room' }}/dist/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 1
 
   deploy:
@@ -117,7 +121,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_SHA: ${{ needs.build.outputs.source }}
           APP_ENTRY: ${{ runner.temp }}/approved-app
-        run: node scripts/dispatch.mjs stage '${{ inputs.operation }}' '${{ inputs.project }}'
+          OPERATION: ${{ inputs.operation }}
+          PROJECT: ${{ inputs.project }}
+        run: node scripts/dispatch.mjs stage "$OPERATION" "$PROJECT"
       - name: Upload complete Pages site
         uses: actions/upload-pages-artifact@v3
         with:
