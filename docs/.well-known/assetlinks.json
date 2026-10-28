@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.xrbuild.uikit",
+      "sha256_cert_fingerprints": [
+        "31:00:8A:C6:73:D5:B7:E5:5B:50:A7:06:3A:82:DE:D5:FA:14:B0:4D:5B:16:F3:90:06:83:B3:10:D9:F6:43:74"
+      ]
+    }
+  }
+]
