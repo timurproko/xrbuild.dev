@@ -1,4 +1,0 @@
-/* Icon render: only the icon stage's canvas, on a transparent page (see xrb-icon.js). */
-html:has(body.xrb-icon), body.xrb-icon { background: transparent !important; overflow: hidden; }
-body.xrb-icon > :not(#xrb-icon-canvas) { display: none !important; }
-body.xrb-icon > #xrb-icon-canvas { position: fixed; left: 0; top: 0; }
