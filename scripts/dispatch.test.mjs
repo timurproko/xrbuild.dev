@@ -52,10 +52,16 @@ test('Actions stage preserves source, unrelated site and can revert its exact co
   assert.equal(git(f.repo, 'rev-parse', 'HEAD:docs/uikit/index.html'), otherBefore);
   assert.equal(git(f.repo, 'rev-parse', 'origin/main'), deployed);
   assert.match(await fs.readFile(f.output, 'utf8'), new RegExp(`commit=${deployed}`));
+  f.run('verify');
+  assert.throws(() => execFileSync(process.execPath, [
+    '--import', pathToFileURL(path.join(source, 'scripts/mock-pages.mjs')).href,
+    path.join(f.repo, 'scripts/dispatch.mjs'), 'verify',
+  ], { cwd: f.repo, encoding: 'utf8', env: { ...process.env, GITHUB_TOKEN: 'fixture', MOCK_FAIL_ROUTE: 'apps/ui-kit/index.html', MOCK_VERIFY_DELAY: '1' } }), /deployed route differs|returned 503|Command failed/);
   execFileSync(process.execPath, [path.join(f.repo, 'scripts/dispatch.mjs'), 'rollback'], {
     cwd: f.repo, encoding: 'utf8', env: { ...process.env, ATTEMPTED_COMMIT: deployed },
   });
   assert.equal(git(f.repo, 'rev-parse', 'HEAD:docs'), git(f.repo, 'rev-parse', `${f.original}:docs`));
+  f.run('verify');
 });
 
 test('Actions stage refuses changed app source after build', async (t) => {

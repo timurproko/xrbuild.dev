@@ -110,7 +110,7 @@ try {
   } else if (command === 'stage' && ['publish', 'unpublish', 'redeploy'].includes(operation)) await stage();
   else if (command === 'verify') {
     for (let i = 0; i < 30; i++) {
-      try { await verify(); process.exit(0); } catch (error) { if (i === 29) throw error; await new Promise((resolve) => setTimeout(resolve, 10000)); }
+      try { await verify(); process.exit(0); } catch (error) { if (i === 29) throw error; await new Promise((resolve) => setTimeout(resolve, process.env.MOCK_VERIFY_DELAY === '1' ? 1 : 10000)); }
     }
   } else if (command === 'rollback') await rollback();
   else throw new Error('unknown publication command');
