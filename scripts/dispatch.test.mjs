@@ -44,6 +44,8 @@ test('Actions dispatch rejects unknown projects, operations and unconfirmed remo
   assert.throws(() => f.run('validate', 'publish', '../private'), /not approved|Command failed/);
   assert.throws(() => f.run('validate', 'arbitrary', 'ui-kit'), /unknown|Command failed/);
   assert.throws(() => f.run('validate', 'unpublish', 'ui-kit'), /confirmation|Command failed/);
+  assert.throws(() => execFileSync(process.execPath, [path.join(f.repo, 'scripts/dispatch.mjs'), 'validate', 'publish', 'ui-kit'],
+    { cwd: f.repo, encoding: 'utf8', env: { ...process.env, REQUEST_ID: 'invalid; echo hello' } }), /invalid panel request identifier|Command failed/);
   assert.equal(git(f.repo, 'rev-parse', 'HEAD'), f.original);
 });
 
