@@ -39,6 +39,14 @@ async function fixture(t) {
   return { repo, remote, original, output, entry, run };
 }
 
+test('Actions dispatch rejects unknown projects, operations and unconfirmed removal', async (t) => {
+  const f = await fixture(t);
+  assert.throws(() => f.run('validate', 'publish', '../private'), /not approved|Command failed/);
+  assert.throws(() => f.run('validate', 'arbitrary', 'ui-kit'), /unknown|Command failed/);
+  assert.throws(() => f.run('validate', 'unpublish', 'ui-kit'), /confirmation|Command failed/);
+  assert.equal(git(f.repo, 'rev-parse', 'HEAD'), f.original);
+});
+
 test('Actions stage preserves source, unrelated site and can revert its exact commit', async (t) => {
   const f = await fixture(t);
   const sourceBefore = git(f.repo, 'rev-parse', 'HEAD:source.txt');
