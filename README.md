@@ -14,7 +14,7 @@ corepack pnpm install --frozen-lockfile
 
 The launcher and UI kit consume SDK sources from an XR Build core checkout. Build them through the XR Build panel, or set `XRB_CORE` to that checkout before running the root build or test command.
 
-The generated website is maintained separately on the `site` branch. This repository intentionally contains no private XR Build plugins, credentials, signing material, or dependency binaries.
+The generated website is publisher-owned under `docs/`, which GitHub Pages serves from `main`. This repository intentionally contains no private XR Build plugins, credentials, signing material, or dependency binaries.
 
 ## License
 
