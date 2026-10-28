@@ -1,6 +1,7 @@
 {
-  "name": "XRBuild",
-  "short_name": "XRBuild",
+  "name": "UI Kit",
+  "short_name": "UI Kit",
+  "description": "Library of spatial UI controls.",
   "start_url": "./?xrb-xr=enter",
   "scope": "./",
   "display": "standalone",
