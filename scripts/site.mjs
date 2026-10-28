@@ -5,7 +5,7 @@ import path from 'node:path';
 export const projects = Object.freeze({ 'ui-kit': 'projects/core/ui-kit', 'control-room': 'projects/apps/control-room' });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const excluded = new Set(['.env', '.git', '.github']);
+const excluded = new Set(['.git', '.github', '.npmrc', '.yarnrc', '.gitconfig']);
 const extensions = new Set(['.key', '.map', '.p12', '.pem', '.pfx']);
 const json = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
 const writeJson = (file, value) => fs.writeFile(file, JSON.stringify(value, null, 2) + '\n');
@@ -29,7 +29,7 @@ export async function buildFiles(folder) {
   async function visit(dir, prefix = '') {
     for (const item of await fs.readdir(dir, { withFileTypes: true })) {
       const relative = prefix ? `${prefix}/${item.name}` : item.name;
-      if (item.isSymbolicLink() || excluded.has(item.name.toLowerCase()) || extensions.has(path.extname(item.name).toLowerCase()))
+      if (item.isSymbolicLink() || item.name.toLowerCase().startsWith('.env') || excluded.has(item.name.toLowerCase()) || extensions.has(path.extname(item.name).toLowerCase()))
         throw new Error(`unsafe build output: ${relative}`);
       if (item.isDirectory()) await visit(path.join(dir, item.name), relative);
       else if (item.isFile()) {

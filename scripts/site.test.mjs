@@ -75,9 +75,16 @@ test('unsafe build and missing index never change the site', async () => {
   await fs.rm(path.join(entry, 'index.html'));
   await assert.rejects(update(dir, 'ui-kit', 'publish', entry), /no index.html/);
   await fs.writeFile(path.join(entry, 'index.html'), 'ok');
-  await fs.writeFile(path.join(entry, '.env'), 'secret');
+  await fs.writeFile(path.join(entry, '.env.local'), 'secret');
   await assert.rejects(buildFiles(entry), /unsafe/);
   assert.equal(await digest(file), before);
+});
+
+test('an oversized app is refused without reading or uploading its bytes', async () => {
+  const { entry } = await fixture();
+  const file = await fs.open(path.join(entry, 'oversized.bin'), 'w');
+  try { await file.truncate(500 * 1024 * 1024 + 1); } finally { await file.close(); }
+  await assert.rejects(buildFiles(entry), /exceeds publication limit/);
 });
 
 test('collision, foreign route and site links are rejected', async () => {
