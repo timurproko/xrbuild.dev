@@ -1,0 +1,14 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+globalThis.fetch = async (input) => {
+  const url = new URL(input);
+  if (url.hostname === 'api.github.com' && url.pathname.endsWith('/pages'))
+    return new Response(JSON.stringify({ build_type: 'workflow', cname: 'xrbuild.dev', https_enforced: true, html_url: 'https://xrbuild.dev/' }), { status: 200 });
+  if (url.hostname !== 'xrbuild.dev') throw new Error(`unexpected test fetch: ${url}`);
+  let relative = url.pathname.replace(/^\/+/, '');
+  if (!relative || relative.endsWith('/')) relative += 'index.html';
+  if (process.env.MOCK_FAIL_ROUTE === relative) return new Response('Unavailable', { status: 503 });
+  try { return new Response(await fs.readFile(path.join(process.cwd(), 'docs', relative)), { status: 200 }); }
+  catch { return new Response('Not found', { status: 404 }); }
+};

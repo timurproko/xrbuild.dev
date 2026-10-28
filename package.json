@@ -5,6 +5,6 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "build": "pnpm --recursive run build",
-    "test": "pnpm --recursive run test"
+    "test": "node --test scripts/*.test.mjs && pnpm --recursive run test"
   }
 }
