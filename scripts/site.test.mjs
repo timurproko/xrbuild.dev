@@ -26,6 +26,8 @@ test('production dispatch is limited to main and never runs on pull requests', a
   const workflow = await fs.readFile(path.join(source, '.github', 'workflows', 'publish-app.yml'), 'utf8');
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /run-name: Publication .*inputs\.request_id/);
+  assert.match(workflow, /REQUEST_ID: \$\{\{ inputs\.request_id \}\}/);
   assert.doesNotMatch(workflow, /pull_request:/);
   assert.match(workflow, /permission-contents: read/);
   assert.match(workflow, /persist-credentials: false/);

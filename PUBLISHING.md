@@ -1,13 +1,13 @@
 # Publish without a local app checkout
 
-The maintainer runs **Actions → Publish app to Pages → Run workflow** in this repository. Choose `main`, an approved project (`ui-kit` or `control-room`) and an operation:
+The updated local XR Build control panel offers **Public apps** → select an approved app → **Publish** or **Unpublish**. It uses the same trusted workflow as a deployment API: the local machine must be signed in with `gh` as a maintainer permitted to run workflows here. No local public-app checkout, browser token or local site push is involved. The existing **Actions → Publish app to Pages → Run workflow** interface remains a fallback. Choose `main`, an approved project (`ui-kit` or `control-room`) and an operation:
 
 - `rehearse`: build and check the complete site locally in CI; no push or production deployment. Run this before any Pages cutover.
 - `redeploy`: deploy the current committed `docs/` tree without rebuilding or changing source. Use this as the first run after switching Pages to Actions.
 - `publish`: build the committed project, update only its owned `docs/apps/<slug>/` route and the inventory, deploy and verify the complete site.
 - `unpublish`: explicitly confirm route removal; update only its owned route, inventory and associated package link, deploy and verify.
 
-Only dispatch on `main` is allowed. The published project ID and slug come from its committed manifest, not workflow input. The launcher is not enabled for production publication until its manifest and target are reviewed. Source edits require normal reviewed commits. Local control-panel development still requires a checkout; **publishing through Actions does not**.
+Only dispatch on `main` is allowed. The published project ID and slug come from its committed manifest, not workflow input. The launcher is not enabled for production publication until its manifest and target are reviewed. Source edits require normal reviewed commits. Local control-panel development still requires a checkout; **remote publication from the updated panel or Actions UI does not**. The Launcher is not an approved remote app route. Optional non-secret `request_id` is generated only by the panel to identify the exact workflow run; leave it blank in the Actions UI.
 
 ## Private build dependency
 
@@ -15,7 +15,9 @@ These apps import SDK and UI-kit source from the private XR Build core. Before r
 
 Workflow permissions must permit `GITHUB_TOKEN` to write the selected `docs/` commit on public `main` (which blocks force-push/deletion), and Pages deployments must be permitted for the `github-pages` environment. Configure the `github-pages` environment to allow deployments from `main` only, and require trusted review of public app source and workflow changes before merging. The deployment job receives `contents: write`, `pages: write`, `id-token: write`; the build job is read-only.
 
-## Cutover (maintainer only, separately authorized)
+## Pages cutover record and recovery (maintainer only)
+
+The Pages Actions cutover has been verified. The sequence below documents recovery; do not repeat it to enable the panel integration.
 
 1. While Pages still deploys from branch `main /docs`, review both repository PRs. Run a `rehearse` dispatch after the public workflow merges. Confirm it builds without leaking private files and does not change `main` or the live site. Do **not** choose `publish` yet.
 2. Check the committed `docs/` root, inventory, routes, `.well-known/assetlinks.json`, `.nojekyll` and `CNAME` against the live site. Pause local production publication. In this repository's Settings → Pages, change **Source** from **Deploy from a branch** to **GitHub Actions**. Preserve the custom domain `xrbuild.dev` and Enforce HTTPS.

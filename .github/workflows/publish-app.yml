@@ -1,4 +1,5 @@
 name: Publish app to Pages
+run-name: Publication ${{ inputs.operation }} ${{ inputs.project }} ${{ inputs.request_id }}
 
 on:
   workflow_dispatch:
@@ -18,6 +19,10 @@ on:
         required: false
         type: boolean
         default: false
+      request_id:
+        description: Optional panel correlation ID (leave blank in Actions UI)
+        required: false
+        type: string
 
 concurrency:
   group: production-pages
@@ -42,6 +47,7 @@ jobs:
           CONFIRM_REMOVAL: ${{ inputs.confirm_removal }}
           OPERATION: ${{ inputs.operation }}
           PROJECT: ${{ inputs.project }}
+          REQUEST_ID: ${{ inputs.request_id }}
         run: node scripts/dispatch.mjs validate "$OPERATION" "$PROJECT"
       - name: Issue short-lived read-only private core token
         if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
