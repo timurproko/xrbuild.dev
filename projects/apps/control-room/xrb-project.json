@@ -1,0 +1,39 @@
+{
+  "name": "Control Room",
+  "kind": "app",
+  "entry": "dist",
+  "scripts": {
+    "build": "build",
+    "dev": "dev"
+  },
+  "icon": "icon.png",
+  "display": "stereo-panel",
+  "plugins": {
+    "station": {
+      "id": "Control Room",
+      "title": "Control Room",
+      "version": "0.1.3",
+      "lastPackaged": "0.1.2"
+    },
+    "headset": {
+      "title": "",
+      "path": ""
+    }
+  },
+  "inputs": [
+    "mouse",
+    "keyboard",
+    "tracker"
+  ],
+  "publication": {
+    "enabled": true,
+    "publisher": "production-web",
+    "id": "c8241e8e-e760-4c2d-887f-07f3ad37b8de",
+    "slug": "control-room",
+    "routes": {
+      "production-web": "control-room",
+      "local-test": "control-room"
+    }
+  },
+  "target": "webxr"
+}

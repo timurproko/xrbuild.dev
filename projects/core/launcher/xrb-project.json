@@ -1,0 +1,37 @@
+{
+  "name": "Launcher",
+  "kind": "app",
+  "entry": "dist",
+  "scripts": {
+    "build": "build",
+    "dev": "dev"
+  },
+  "display": "stereo-panel",
+  "plugins": {
+    "headset": {
+      "id": "com.xrbuild.launcher",
+      "title": "XR Build Launcher",
+      "version": "0.1.0",
+      "path": ""
+    },
+    "desktop": {
+      "monitor": 1
+    }
+  },
+  "inputs": [
+    "mouse",
+    "keyboard"
+  ],
+  "publication": {
+    "enabled": true,
+    "publisher": "local-test",
+    "id": "31cb8491-7206-40eb-84b7-76cc72bd8ea4",
+    "slug": "launch",
+    "routes": {
+      "production-web": "launch",
+      "local-test": "launch"
+    }
+  },
+  "icon": "icon.png",
+  "platform": "station"
+}

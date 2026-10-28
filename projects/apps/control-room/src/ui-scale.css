@@ -1,0 +1,255 @@
+/* Larger UI at native browser zoom. Scale the interface, not the viewport or
+   WebGL canvas: desktop breakpoints, screen anchors and pointer coordinates stay
+   unchanged. Fluid units ease the enlargement on smaller displays. */
+:root {
+  /* 25% smaller than the initial 175% presentation. */
+  --ui-scale: 1.3125;
+  --action-color: #ffb94d;
+  --action-border: rgba(255, 153, 0, .3);
+  --action-background: rgba(255, 153, 0, .08);
+  --action-highlight: rgba(255, 153, 0, .15);
+  --ui-unit: clamp(.75px, .0520833333vw, 2px);
+  --ui: calc(var(--ui-scale) * var(--ui-unit));
+  --ui-control: max(44px, calc(56 * var(--ui)));
+  --ui-header-button: max(44px, calc(44 * var(--ui)));
+  --ui-control-gap: calc(12 * var(--ui));
+  --ui-menu-label: calc(23 * var(--ui));
+  --ui-header: max(100px, calc(88 * var(--ui)));
+  --ui-header-row: var(--ui-header);
+  --ui-sidebar: min(32vw, calc(307 * var(--ui)));
+  --ui-gallery: calc(144 * var(--ui));
+  --ui-edge: clamp(18px, 2vw, 76px);
+}
+
+.brand { width: auto; gap: calc(12 * var(--ui)); flex-shrink: 0; }
+.brand-mark { font-size: calc(34 * var(--ui)); }
+.brand-mark::after { width: calc(38 * var(--ui)); height: calc(8 * var(--ui)); }
+.brand-copy { padding-left: calc(12 * var(--ui)); }
+.brand-copy strong { font-size: calc(14 * var(--ui)); }
+.brand-copy span { font-size: calc(10 * var(--ui)); }
+.avatar { width: calc(48 * var(--ui)); height: calc(48 * var(--ui)); font-size: calc(12 * var(--ui)); flex-shrink: 0; }
+.replay-button { min-height: var(--ui-header-button); height: auto; padding: calc(10 * var(--ui)); font-size: calc(11 * var(--ui)); }
+.top-actions { gap: calc(8 * var(--ui)); }
+/* Render the globe behind a frosted header, fading only the glass layer—not
+   the controls—across its lower edge. */
+.topbar { --header-feather: clamp(14px, 1vw, 32px); padding-inline: var(--ui-edge); background: transparent; border-bottom: 0; backdrop-filter: none; }
+.topbar::before {
+  content: ''; position: absolute; inset: 0 0 calc(-1 * var(--header-feather)); z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(4,15,20,.64), rgba(4,15,20,.38) 65%, rgba(4,15,20,0));
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--header-feather) * 2), transparent);
+}
+#scene { position: absolute; left: 0; }
+.globe-layer-button { font-size: calc(10 * var(--ui)); padding: calc(10 * var(--ui)) calc(12 * var(--ui)); min-height: var(--ui-header-button); letter-spacing: .02em; }
+.globe-layer-options { min-width: 0; justify-content: safe center; overflow-x: auto; padding: 4px; scrollbar-width: thin; }
+.globe-layer-button { flex-shrink: 0; }
+
+.eyebrow { font-size: calc(11 * var(--ui)); }
+h1 { font-size: calc(51 * var(--ui)); line-height: 1.12; }
+.header-identity { display: grid; align-items: center; min-height: var(--ui-header-row); min-width: 0; max-width: calc(100% - 60px); }
+.header-identity > * { grid-area: 1 / 1; }
+.header-identity .brand { min-width: 0; width: auto; }
+.header-identity .brand-copy { display: block; min-width: 0; }
+.header-menu { display: flex; min-width: 0; font-size: var(--ui-menu-label); line-height: 1.1; margin: 0; }
+.header-menu .title-menu-trigger { min-height: var(--ui-control); padding-block: 0; }
+.header-menu .title-menu-copy { white-space: nowrap; }
+.reference-room-bar { min-height: var(--ui-header-row); padding-inline: var(--ui-edge); }
+.title-menu-trigger {
+  gap: .65em; min-height: 44px; padding: .4em .55em; border: 1px solid var(--card-surface-outline); border-radius: .45em; letter-spacing: .015em;
+  background: var(--card-surface-fill);
+  box-shadow: inset 0 1px #ffffff12, 0 8px 24px #0003;
+  transition: background .18s ease, border-color .18s ease;
+}
+.title-menu-copy { display: flex; flex-direction: column; gap: .18em; min-width: 0; }
+.title-menu-trigger svg { width: .65em; height: .65em; opacity: 1; color: #b4dca6; }
+.title-menu-trigger[aria-expanded="true"], .title-menu-trigger:focus-visible {
+  background: var(--card-surface-fill); border-color: #c9f7aaa6; outline-color: #b4dca6;
+}
+.title-block p { font-size: calc(14 * var(--ui)); line-height: 1.5; }
+#globe-layer-summary { max-width: 100%; font-size: calc(11 * var(--ui)); }
+.control-button { width: var(--ui-control); height: var(--ui-control); min-width: var(--ui-control); min-height: var(--ui-control); font-size: calc(28 * var(--ui)); flex-shrink: 0; }
+.control-button svg { width: calc(21 * var(--ui)); height: calc(21 * var(--ui)); }
+.map-controls, .globe-layer-options { gap: var(--ui-control-gap); }
+.map-controls { left: var(--ui-edge); top: var(--map-controls-top, 28px); bottom: auto; flex-direction: column; gap: max(18px, calc(22 * var(--ui))); }
+/* Map, gallery and deep-dive Back controls share the same arrow-button surface. */
+.map-controls > .control-button,
+.gallery-strip > .control-button,
+.reference-home {
+  border-color: var(--card-surface-outline);
+  background: var(--card-surface-fill);
+  box-shadow: inset 0 1px #d4ffc74d;
+}
+.map-controls > .control-button:focus-visible,
+.gallery-strip > .control-button:focus-visible,
+.reference-home:focus-visible {
+  outline: 2px solid #c9f7aaa6; outline-offset: 3px;
+}
+/* Grow to exactly 2× the responsive base size with the camera's smooth dolly. */
+.city-label { --city-label-size: clamp(12px, calc(12 * var(--ui)), 40px); font-size: calc(var(--city-label-size) * (1 + var(--label-focus, 0))); padding: calc(5 * var(--ui)) calc(8 * var(--ui)); border-radius: calc(6 * var(--ui)); }
+
+/* Close actions share the rectangular action-button palette, in every dialog. */
+.drill-button, .close-detail, .drawer-close, .area-menu-close {
+  color: var(--action-color);
+  border-color: var(--action-border);
+  background: var(--action-background);
+}
+.drill-button:focus-visible, .close-detail:focus-visible,
+.drawer-close:focus-visible, .area-menu-close:focus-visible {
+  color: var(--action-color);
+  border-color: var(--action-color);
+  background: var(--action-highlight);
+  outline-color: var(--action-color);
+  transform: none;
+}
+.drill-button:active, .close-detail:active, .drawer-close:active, .area-menu-close:active {
+  background: var(--action-highlight);
+}
+
+/* Let long panels scroll internally rather than covering the KPI gallery. */
+.sidebar-panel { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #617d6b transparent; }
+.stats-panel { display: flex; flex-direction: column; overflow: hidden; }
+.stats-panel .panel-head, .stats-panel .panel-foot { flex: 0 0 auto; }
+.network-health-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.network-health-body:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.panel-head { height: auto; min-height: calc(54 * var(--ui)); padding: calc(12 * var(--ui)) calc(18 * var(--ui)); }
+.panel-head h2 { font-size: calc(12 * var(--ui)); }
+.overall { padding: calc(17 * var(--ui)); }
+.overall-label { font-size: calc(9 * var(--ui)); }
+.overall-value { font-size: calc(38 * var(--ui)); margin-top: calc(8 * var(--ui)); }
+.overall-value small { font-size: calc(13 * var(--ui)); }
+.metrics { padding: 2px calc(18 * var(--ui)); }
+.metric { padding: calc(12 * var(--ui)) 0; gap: calc(8 * var(--ui)); }
+.metric > div:first-child { min-width: 0; }
+.metric-name { font-size: calc(12 * var(--ui)); }
+.metric-meta, .trend { font-size: calc(9 * var(--ui)); }
+.metric-value { font-size: calc(18 * var(--ui)); white-space: nowrap; }
+.panel-foot { padding: calc(12 * var(--ui)) calc(18 * var(--ui)); }
+.stats-panel .panel-foot { gap: calc(8 * var(--ui)); text-align: center; }
+.stats-panel .panel-foot .drill-button { margin-top: 0; }
+.panel-foot span, .text-button { font-size: calc(9 * var(--ui)); }
+.hub-detail { padding: calc(21 * var(--ui)); }
+.hub-code { font-size: calc(10 * var(--ui)); }
+.hub-detail h3 { font-size: calc(25 * var(--ui)); }
+.hub-location { font-size: calc(12 * var(--ui)); }
+.hub-grid { gap: calc(8 * var(--ui)); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hub-stat { padding: calc(10 * var(--ui)); }
+.hub-stat b { font-size: calc(18 * var(--ui)); overflow-wrap: anywhere; }
+.hub-stat span { font-size: calc(9 * var(--ui)); }
+.drill-button { height: auto; min-height: calc(52 * var(--ui)); padding: calc(10 * var(--ui)); font-size: calc(11 * var(--ui)); line-height: 1.4; }
+
+.bottom-strip.gallery-strip {
+  --gallery-caption-gap: max(10px, calc(12 * var(--ui)));
+  --gallery-caption-height: calc(14 * var(--ui));
+  height: var(--ui-gallery);
+  bottom: calc(2 * var(--gallery-caption-gap) + var(--gallery-caption-height));
+}
+.bottom-strip.gallery-strip .gallery-caption {
+  display: flex; top: calc(100% + var(--gallery-caption-gap)); bottom: auto;
+  left: 50%; transform: translateX(-50%); justify-content: center;
+}
+.kpi-gallery.is-3d .kpi { width: min(36vw, calc(250 * var(--ui))); padding: calc(22 * var(--ui)); }
+.kpi-label { font-size: calc(10 * var(--ui)); }
+.kpi-value { font-size: calc(25 * var(--ui)); margin-top: calc(13 * var(--ui)); white-space: nowrap; }
+.kpi-change { font-size: calc(10 * var(--ui)); }
+.card-action { left: calc(22 * var(--ui)); bottom: calc(15 * var(--ui)); font-size: calc(9 * var(--ui)); }
+.spark { width: calc(70 * var(--ui)); height: calc(32 * var(--ui)); bottom: calc(32 * var(--ui)); right: calc(14 * var(--ui)); }
+.gallery-caption small { font-size: calc(10 * var(--ui)); line-height: var(--gallery-caption-height); }
+/* Follow the scaled cover-flow stack, with a small gap beyond its outer cards.
+   Clamp to the gallery bounds only when the viewport cannot fit the full stack. */
+.bottom-strip.gallery-strip { --gallery-arrow-inset: max(0px, calc(50% - 462 * var(--ui) - var(--ui-control))); }
+.bottom-strip.gallery-strip #gallery-prev { left: var(--gallery-arrow-inset); }
+.bottom-strip.gallery-strip #gallery-next { right: var(--gallery-arrow-inset); }
+
+.analytics-drawer { position: fixed; display: flex; flex-direction: column; overflow: hidden; padding: calc(24 * var(--ui)); }
+body:has(.analytics-drawer.open) { overflow: hidden; }
+.drawer-head { flex-shrink: 0; gap: calc(16 * var(--ui)); padding-bottom: calc(18 * var(--ui)); }
+.drawer-head h2 { font-size: calc(30 * var(--ui)); }
+.drawer-head p { font-size: calc(13 * var(--ui)); }
+.drawer-grid { flex: 1; min-height: 0; height: auto; overflow: hidden; grid-auto-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1.7fr) repeat(2, minmax(0, 1fr)); }
+.chart-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: calc(18 * var(--ui)); overflow: hidden; }
+.chart-large { flex: 1; min-height: 0; height: auto; display: block; }
+.card-title { flex-shrink: 0; gap: calc(8 * var(--ui)); flex-wrap: wrap; }
+.card-title h3 { font-size: calc(13 * var(--ui)); }
+.card-title span, .bar-row-label, .risk-item { font-size: calc(11 * var(--ui)); }
+.risk-item b { font-size: calc(10 * var(--ui)); }
+.bar-list { flex: 1; min-height: 0; justify-content: space-evenly; gap: min(1.4dvh, calc(18 * var(--ui))); }
+.risk-list { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-evenly; }
+.risk-item { padding: min(1.3dvh, calc(14 * var(--ui))) 0; }
+#intro-step { font-size: calc(14 * var(--ui)); }
+.intro-timeline i { height: calc(3 * var(--ui)); }
+
+.title-menu-trigger .title-menu-icon { width: calc(38 * var(--ui)); height: calc(38 * var(--ui)); color: #a9d39c; }
+.reference-room-status, .reference-retry { font-size: calc(16 * var(--ui)); }
+
+@media (min-width: 1100px) {
+  .topbar { height: var(--ui-header); padding-inline: var(--ui-edge); }
+  .workspace { top: var(--ui-header); }
+  .globe-layer-selector { max-width: calc(100% - 2 * (var(--ui-edge) + 290 * var(--ui))); }
+  .title-block, .sidebar-panel { top: clamp(28px, 1.55vw, 60px); }
+  .title-block { max-width: calc(100% - var(--ui-sidebar) - 3 * var(--ui-edge)); }
+  .sidebar-panel { width: var(--ui-sidebar); right: var(--ui-edge); max-height: calc(100% - var(--ui-gallery) - 100px); }
+  .bottom-strip.gallery-strip { left: var(--ui-edge); right: var(--ui-edge); }
+}
+
+/* Compact sidebar spacing on shorter screens; the left controls remain centered. */
+@media (min-width: 1100px) and (max-height: 900px) {
+  .stats-panel .metric { padding-block: calc(7 * var(--ui)); }
+  .stats-panel .overall { padding-block: calc(10 * var(--ui)); }
+  .stats-panel .panel-head { height: auto; min-height: calc(44 * var(--ui)); }
+  .stats-panel .overall-value { font-size: calc(34 * var(--ui)); }
+}
+@media (max-width: 1099px) {
+  :root { --ui-control: 44px; --ui-header-button: 44px; --ui-gallery: 127.5px; --ui-header-row: 72px; }
+  .topbar { height: 140px; padding-top: 0; }
+  .top-actions { margin-top: calc((var(--ui-header-row) - var(--ui-header-button)) / 2); }
+  .workspace { top: 140px; }
+  .globe-layer-selector { max-width: calc(100% - 24px); bottom: 6px; }
+  .globe-layer-button { min-height: 44px; font-size: 10px; padding: 7.5px 10.5px; }
+  .title-block { max-width: calc(100% - 340px); }
+  h1 { font-size: 28.5px; }
+  .title-block p { font-size: 12px; }
+  .sidebar-panel { width: 225px; max-height: calc(100% - var(--ui-gallery) - 60px); }
+  .kpi-gallery.is-3d .kpi { width: 225px; }
+}
+@media (max-width: 720px) {
+  :root { --ui-control-gap: 10px; --ui-menu-label: 18px; }
+  .header-identity .brand-copy strong { font-size: 11px; }
+  .header-identity .brand-copy span { font-size: 9px; }
+  body { overflow: auto; }
+  .app-shell { min-height: 940px; }
+  .title-block { max-width: calc(100% - 36px); }
+  h1 { font-size: 24px; }
+  #globe-layer-summary { max-width: 100%; font-size: 10px; }
+  .title-block p { font-size: 10px; }
+  .sidebar-panel { top: 210px; width: min(72vw, 225px); max-height: calc(100% - 400px); }
+  .bottom-strip.gallery-strip { left: 10px; right: 10px; }
+  .kpi-gallery.is-3d .kpi { width: min(68vw, 225px); padding: 13.5px; }
+  .kpi-value { font-size: 20.25px; }
+  .kpi-change { font-size: 9px; margin-left: 2px; }
+  .card-action { left: 13.5px; font-size: 8px; }
+  .analytics-drawer { height: calc(100dvh - 16px); padding: 12px; }
+  .drawer-head { padding-bottom: 10px; }
+  .drawer-head h2 { font-size: 21px; }
+  .drawer-head p { font-size: 11px; }
+  .drawer-grid { grid-template-columns: 1fr; gap: 6px; padding-top: 6px; }
+  .chart-card { min-height: 0; padding: 10px; }
+  .card-title { gap: 4px; }
+  .card-title h3 { font-size: 11px; }
+  .card-title span, .bar-row-label, .risk-item { font-size: 10px; }
+  .bar-list, .risk-list { margin-top: 6px; gap: 3px; }
+  .bar-row-label { margin-bottom: 3px; }
+  .risk-item { padding: 3px 0; }
+  .title-menu-trigger .title-menu-icon { width: 24px; height: 24px; }
+}
+@media (max-height: 600px) {
+  .analytics-drawer { height: calc(100dvh - 16px); padding: 12px; }
+  .drawer-head { padding-bottom: 8px; }
+  .drawer-head h2 { font-size: 20px; }
+  .drawer-head p { font-size: 11px; }
+  .chart-card { padding: 10px; }
+  .card-title h3 { font-size: 11px; }
+  .card-title span, .bar-row-label, .risk-item { font-size: 10px; }
+  .bar-list { gap: 2px; }
+  .risk-item { padding: 3px 0; }
+}
