@@ -1,0 +1,10 @@
+/* XR Build mode: the globe canvas fills the page (two eyes side by side); the HTML dashboard
+   is hidden because each DOM element would only be seen by the left eye. `!important`
+   on every descendant: some elements (city labels) set their own visibility. */
+body.xrb-stereo { overflow: hidden; background: #061512; }
+body.xrb-stereo #app,
+body.xrb-stereo #app * { visibility: hidden !important; }
+/* Taken out of rendering entirely: merely hidden, the dashboard still cost a full style,
+   layout and compositing pass per frame at 3840 px and held the page at ~40 fps (measured). */
+body.xrb-stereo #app { display: none !important; }
+body.xrb-stereo > #scene { position: fixed; left: 0; top: 0; z-index: 10; visibility: visible; cursor: none; }

@@ -1,0 +1,84 @@
+{
+  "name": "UI Kit",
+  "kind": "app",
+  "entry": "dist",
+  "scripts": {
+    "build": "build",
+    "dev": "dev"
+  },
+  "iconColor": "green",
+  "plugins": {
+    "station": {
+      "id": "UI Kit Stereo Panel",
+      "title": "UI Kit",
+      "version": "0.1.1",
+      "lastPackaged": "0.1.0"
+    },
+    "headset": {
+      "id": "com.xrbuild.uikit",
+      "title": "UI Kit",
+      "version": "0.1.2",
+      "path": "",
+      "lastPackaged": "0.1.1"
+    },
+    "desktop": {
+      "monitor": 1
+    },
+    "desktop-package": {
+      "title": "UI Kit",
+      "version": "0.1.3",
+      "id": "UI Kit",
+      "lastPackaged": "0.1.2"
+    }
+  },
+  "inputs": [
+    "mouse",
+    "keyboard"
+  ],
+  "display": "desktop",
+  "publication": {
+    "enabled": true,
+    "publisher": "production-web",
+    "id": "bc7aeb26-ae20-492e-a5c7-f0d0cd95445e",
+    "slug": "ui-kit",
+    "routes": {
+      "production-web": "ui-kit",
+      "local-test": "ui-kit"
+    }
+  },
+  "icon": "icon.png",
+  "platformSettings": {
+    "host:": {
+      "display": "desktop",
+      "inputs": [
+        "mouse",
+        "keyboard"
+      ],
+      "monitor": 1
+    },
+    "host:station": {
+      "display": "stereo-panel",
+      "inputs": [
+        "mouse",
+        "keyboard"
+      ],
+      "monitor": 1
+    },
+    "webxr:": {
+      "display": "stereo-panel",
+      "inputs": [
+        "mouse",
+        "keyboard"
+      ],
+      "monitor": 1
+    },
+    "webxr:headset": {
+      "display": "stereo-panel",
+      "inputs": [
+        "mouse",
+        "keyboard"
+      ],
+      "monitor": 1
+    }
+  }
+}

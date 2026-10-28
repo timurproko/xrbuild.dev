@@ -1,0 +1,10 @@
+{
+  "name": "xrbuild.dev",
+  "private": true,
+  "description": "Source projects published at xrbuild.dev",
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build": "pnpm --recursive run build",
+    "test": "pnpm --recursive run test"
+  }
+}
