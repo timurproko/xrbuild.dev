@@ -1,0 +1,171 @@
+name: Publish app to Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Rehearse without deploy, publish, unpublish, or redeploy existing site
+        required: true
+        type: choice
+        options: [rehearse, publish, unpublish, redeploy]
+      project:
+        description: Approved public app (ignored for redeploy)
+        required: true
+        type: choice
+        options: [ui-kit, control-room]
+      confirm_removal:
+        description: Confirm that Unpublish removes the live app route
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: production-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      source: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Validate approved request and current site
+        env:
+          CONFIRM_REMOVAL: ${{ inputs.confirm_removal }}
+        run: node scripts/dispatch.mjs validate '${{ inputs.operation }}' '${{ inputs.project }}'
+      - name: Issue short-lived read-only private core token
+        if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
+        id: private-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.XRB_CORE_READ_APP_ID }}
+          private-key: ${{ secrets.XRB_CORE_READ_APP_KEY }}
+          owner: timurproko
+          repositories: xrbuild
+          permission-contents: read
+      - name: Checkout private core without saving credentials
+        if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
+        uses: actions/checkout@v4
+        with:
+          repository: timurproko/xrbuild
+          ref: main
+          path: private-core
+          token: ${{ steps.private-token.outputs.token }}
+          persist-credentials: false
+          lfs: false
+      - name: Install reviewed public and core packages
+        if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
+        run: |
+          corepack enable
+          corepack pnpm install --frozen-lockfile
+          cd private-core && corepack pnpm install --frozen-lockfile
+      - name: Build selected app
+        if: inputs.operation == 'publish' || inputs.operation == 'rehearse'
+        env:
+          XRB_CORE: ${{ github.workspace }}/private-core
+          PROJECT: ${{ inputs.project }}
+        run: |
+          case "$PROJECT" in
+            ui-kit) folder=projects/core/ui-kit ;;
+            control-room) folder=projects/apps/control-room ;;
+            *) exit 1 ;;
+          esac
+          corepack pnpm --dir "$folder" run build
+          APP_ENTRY="$folder/dist" node scripts/dispatch.mjs check-build
+          if [ '${{ inputs.operation }}' = rehearse ]; then APP_ENTRY="$folder/dist" node scripts/dispatch.mjs rehearse publish "$PROJECT"; fi
+      - name: Upload approved build for the deployment job
+        if: inputs.operation == 'publish'
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-app
+          path: projects/${{ inputs.project == 'ui-kit' && 'core/ui-kit' || 'apps/control-room' }}/dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    if: inputs.operation != 'rehearse' && needs.build.result == 'success'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://xrbuild.dev/
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download approved build
+        if: inputs.operation == 'publish'
+        uses: actions/download-artifact@v4
+        with:
+          name: approved-app
+          path: ${{ runner.temp }}/approved-app
+      - name: Commit route-scoped site update or select current site
+        id: site
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BUILD_SHA: ${{ needs.build.outputs.source }}
+          APP_ENTRY: ${{ runner.temp }}/approved-app
+        run: node scripts/dispatch.mjs stage '${{ inputs.operation }}' '${{ inputs.project }}'
+      - name: Upload complete Pages site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+      - name: Deploy complete Pages site
+        id: first
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: Verify public site
+        id: verify
+        if: steps.first.outcome == 'success'
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REMOVED_SLUG: ${{ steps.site.outputs.removed }}
+        run: node scripts/dispatch.mjs verify
+      - name: Revert unsuccessful publication commit
+        if: (steps.first.outcome == 'failure' || steps.verify.outcome == 'failure') && inputs.operation != 'redeploy'
+        id: rollback
+        continue-on-error: true
+        env:
+          ATTEMPTED_COMMIT: ${{ steps.site.outputs.commit }}
+        run: node scripts/dispatch.mjs rollback
+      - name: Upload last-known-good site
+        if: steps.rollback.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+          name: github-pages-rollback
+      - name: Redeploy last-known-good site
+        if: steps.rollback.outcome == 'success'
+        id: restored
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-rollback
+      - name: Verify restored site
+        if: steps.restored.outcome == 'success'
+        id: restored-verify
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/dispatch.mjs verify
+      - name: Report publication or rollback failure
+        if: steps.first.outcome == 'failure' || steps.verify.outcome == 'failure'
+        env:
+          ROLLBACK: ${{ steps.rollback.outcome }}
+          RESTORED: ${{ steps.restored-verify.outcome }}
+        run: |
+          if [ "$ROLLBACK" = success ] && [ "$RESTORED" = success ]; then echo 'Publication failed; the previous site was restored and verified.'; else echo 'Publication failed and restoration was not verified. Investigate before retrying.'; fi
+          exit 1
