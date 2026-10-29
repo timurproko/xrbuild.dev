@@ -79,9 +79,18 @@ h1 { margin: 0; font-size: clamp(50px, min(6.2vw, 14.5vh), 128px); font-weight: 
   background-size: 180% 100%; background-position: 0% 50%;
   -webkit-background-clip: text; background-clip: text;
 }
+/* Light through the lens: a soft spectral band drifts across the first line. */
+.title-line.prism .title-line-inner {
+  color: transparent;
+  background: linear-gradient(104deg, #f4f1eb 0%, #f4f1eb 24%, #ffd0e4 33%, #fff1c4 39%, #c6f4e3 46%, #bfe0ff 53%, #e0cfff 60%, #f4f1eb 70%, #f4f1eb 100%);
+  background-size: 260% 100%; background-position: 100% 50%;
+  -webkit-background-clip: text; background-clip: text;
+}
 .js .title-line-inner { transform: translateY(112%); opacity: 0; }
 .js.reveal-ready .title-line-inner { animation: title-reveal .9s var(--ease-out) both; }
+.js.reveal-ready .title-line.prism .title-line-inner { animation: title-reveal .9s var(--ease-out) both, prism 12s ease-in-out 1s infinite alternate; }
 .js.reveal-ready .title-line.accent .title-line-inner { animation: title-reveal .9s var(--ease-out) .1s both, shimmer 14s ease-in-out 1.1s infinite alternate; }
+@keyframes prism { from { background-position: 100% 50%; } to { background-position: 0% 50%; } }
 @keyframes shimmer { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
 .js .hero-copy p, .js .topbar { opacity: 0; }
 .js.reveal-ready .hero-copy p { animation: copy-reveal .8s ease .38s both; }
@@ -123,6 +132,6 @@ h1 { margin: 0; font-size: clamp(50px, min(6.2vw, 14.5vh), 128px); font-weight: 
 
 @media (prefers-reduced-motion: reduce) {
   .scene-stage canvas { transition: none; }
-  .js .title-line-inner, .js.reveal-ready .title-line-inner, .js.reveal-ready .title-line.accent .title-line-inner,
+  .js .title-line-inner, .js.reveal-ready .title-line-inner, .js.reveal-ready .title-line.accent .title-line-inner, .js.reveal-ready .title-line.prism .title-line-inner,
   .js .hero-copy p, .js .topbar, .js.reveal-ready .hero-copy p, .js.reveal-ready .topbar { animation: none; transform: none; opacity: 1; }
 }
