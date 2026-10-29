@@ -21,39 +21,60 @@ async function fixture(t) {
     await fs.mkdir(path.dirname(path.join(repo, rel)), { recursive: true });
     await fs.copyFile(path.join(source, rel), path.join(repo, rel));
   }
-  await fs.writeFile(path.join(repo, 'source.txt'), 'source stays private');
+  await fs.writeFile(path.join(repo, 'source.txt'), 'app source stays private');
+  await fs.writeFile(path.join(repo, '.gitignore'), 'site/dist/\n');
   git(repo, 'add', '.'); git(repo, 'commit', '-m', 'baseline');
+  // The landing build output is never committed; the workflow builds it before validation.
+  await fs.mkdir(path.join(repo, 'site', 'dist'), { recursive: true });
+  await fs.writeFile(path.join(repo, 'site', 'dist', 'index.html'), '<!doctype html><title>fixture landing</title>');
   const original = git(repo, 'rev-parse', 'HEAD');
   const request = '33333333-3333-4333-8333-333333333333';
+  const siteDir = path.join(base, 'composed');
   const run = (command, env = {}) => execFileSync(process.execPath, [
     '--import', pathToFileURL(path.join(source, 'scripts/mock-pages.mjs')).href,
     path.join(repo, 'scripts/dispatch.mjs'), command,
   ], { cwd: repo, encoding: 'utf8', windowsHide: true,
-    env: { ...process.env, GITHUB_TOKEN: 'fixture', EXPECTED_COMMIT: original, REQUEST_ID: request, MOCK_VERIFY_DELAY: '1', ...env } });
-  return { repo, original, run };
+    env: { ...process.env, GITHUB_TOKEN: 'fixture', GITHUB_EVENT_NAME: 'workflow_dispatch', EXPECTED_COMMIT: original, REQUEST_ID: request, SITE_DIR: siteDir, MOCK_VERIFY_DELAY: '1', ...env } });
+  return { repo, original, siteDir, run };
 }
 
-test('redeploy accepts only the exact reviewed site commit and a bounded request ID', async (t) => {
+test('a panel redeploy accepts only the exact reviewed site commit and a bounded request ID', async (t) => {
   const f = await fixture(t);
-  assert.match(f.run('validate'), /Validated complete site/);
+  assert.match(f.run('validate'), /Validated complete site at [0-9a-f]{40} \(redeploy\)/);
   assert.throws(() => f.run('validate', { EXPECTED_COMMIT: 'f'.repeat(40) }), /Command failed/);
   assert.throws(() => f.run('validate', { REQUEST_ID: 'injection; echo danger' }), /Command failed/);
+  assert.throws(() => f.run('validate', { EXPECTED_COMMIT: '', REQUEST_ID: '' }), /Command failed/, 'a dispatch without its inputs is refused');
   assert.throws(() => f.run('stage'), /Command failed/);
   assert.equal(git(f.repo, 'rev-parse', 'HEAD'), f.original);
 });
 
-test('redeploy checks complete public site but never mutates source or site', async (t) => {
+test('a push of main composes the committed routes with the built landing', async (t) => {
   const f = await fixture(t);
+  assert.match(f.run('validate', { GITHUB_EVENT_NAME: 'push', EXPECTED_COMMIT: '', REQUEST_ID: '' }), /\(push\)/);
+  assert.equal(await fs.readFile(path.join(f.siteDir, 'index.html'), 'utf8'), '<!doctype html><title>fixture landing</title>');
+  await fs.access(path.join(f.siteDir, 'apps', 'ui-kit', 'index.html'));
+  await fs.rm(path.join(f.repo, 'site', 'dist', 'index.html'));
+  assert.throws(() => f.run('validate', { GITHUB_EVENT_NAME: 'push', EXPECTED_COMMIT: '', REQUEST_ID: '' }), /Command failed/, 'no landing build, no site');
+  assert.equal(git(f.repo, 'status', '--porcelain'), '');
+});
+
+test('verification checks the complete composed site but never mutates source or site', async (t) => {
+  const f = await fixture(t);
+  f.run('validate');
   assert.match(f.run('verify'), /Verified root, inventory, associations/);
   assert.throws(() => f.run('verify', { MOCK_FAIL_ROUTE: 'apps/ui-kit/index.html' }), /Command failed/);
+  assert.throws(() => f.run('verify', { MOCK_FAIL_ROUTE: 'index.html' }), /Command failed/);
   assert.equal(git(f.repo, 'rev-parse', 'HEAD'), f.original);
   assert.equal(git(f.repo, 'status', '--porcelain'), '');
 });
 
-test('workflow only deploys a pinned complete docs tree and has no source builder or private key', async () => {
+test('workflow builds only the landing, deploys the composed tree and keeps the panel redeploy contract', async () => {
   const workflow = await fs.readFile(path.join(source, '.github/workflows/publish-app.yml'), 'utf8');
   assert.match(workflow, /XRB_REDEPLOY_ONLY_V1/);
-  assert.match(workflow, /path: docs\//);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /push:\n\s+branches: \[main\]/);
+  assert.match(workflow, /path: _site\//);
   assert.match(workflow, /EXPECTED_COMMIT: \$\{\{ inputs.expected_commit \}\}/);
+  assert.match(workflow, /working-directory: site\n\s+run: npm ci/);
   assert.doesNotMatch(workflow, /create-github-app-token|private-core|pnpm|inputs\.project|contents: write|operation:/);
 });
