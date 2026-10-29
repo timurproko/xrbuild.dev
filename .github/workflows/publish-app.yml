@@ -1,12 +1,18 @@
-# XRB_REDEPLOY_ONLY_V1: no app source build or publication writer in Actions.
-name: Deploy committed site to Pages
-run-name: Redeploy site ${{ inputs.request_id }}
+# XRB_REDEPLOY_ONLY_V1: published app routes under docs/ deploy exactly as committed. Actions builds no app
+# source and has no publication writer. Only the root landing page is built here, from site/, and composed
+# on top of docs/ without being allowed to replace anything docs/ already holds.
+name: Build landing and deploy site to Pages
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Redeploy site {0}', inputs.request_id) || format('Deploy site {0}', github.sha) }}
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       expected_commit:
-        description: Exact public main commit whose complete docs tree is to be deployed
+        description: Exact public main commit whose complete site is to be deployed
         required: true
         type: string
       request_id:
@@ -18,43 +24,78 @@ concurrency:
   group: production-pages
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  deploy:
-    if: github.ref == 'refs/heads/main'
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: https://xrbuild.dev/
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Validate exact committed complete site
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install landing dependencies
+        working-directory: site
+        run: npm ci
+      - name: Build landing
+        working-directory: site
+        run: npm run build
+      - name: Check landing output
+        working-directory: site
+        run: npm test
+      - name: Install browser for landing checks
+        working-directory: site
+        run: npx playwright install --with-deps chromium
+      - name: Check landing in a browser
+        working-directory: site
+        run: npm run test:browser
+      - name: Compose and validate the complete site
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
           REQUEST_ID: ${{ inputs.request_id }}
         run: node scripts/dispatch.mjs validate
+      - name: Check site scripts
+        run: node --test scripts/site.test.mjs scripts/dispatch.test.mjs
+      - name: Upload complete Pages site
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: _site/
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://xrbuild.dev/
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Fetch the composed site for verification
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: github-pages
+          path: _pages
+      - name: Unpack the composed site
+        run: mkdir -p _site && tar -xf _pages/artifact.tar -C _site
       - name: Confirm main has not advanced
         env:
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           git fetch --no-tags origin main
-          test "$(git rev-parse origin/main)" = "$EXPECTED_COMMIT"
-      - name: Upload complete Pages site
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
-        with:
-          path: docs/
-      - name: Confirm deployment is still current
-        env:
-          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
-        run: |
-          git fetch --no-tags origin main
-          test "$(git rev-parse origin/main)" = "$EXPECTED_COMMIT"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_COMMIT:-$GITHUB_SHA}"
       - name: Deploy complete Pages site
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
       - name: Verify deployed complete site
