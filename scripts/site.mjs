@@ -7,6 +7,7 @@ const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const json = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
 const sha = (body) => createHash('sha256').update(body).digest('hex');
 const manifestName = 'landing-output.json';
+const textExtensions = new Set(['.css', '.html', '.js', '.json', '.txt', '.webmanifest', '.xml']);
 
 /** Root entries owned by publication state; landing output may never provide them. */
 export const reserved = new Set(['CNAME', '.nojekyll', '.xrb-publications.json', '.well-known', 'apps', 'uikit']);
@@ -74,7 +75,8 @@ export async function updateLanding(root) {
   for (const relative of files) {
     const target = path.join(docs, ...relative.split('/'));
     await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.copyFile(path.join(dist, ...relative.split('/')), target);
+    const source = path.join(dist, ...relative.split('/')), body = await fs.readFile(source);
+    await fs.writeFile(target, textExtensions.has(path.extname(relative)) ? body.toString('utf8').replace(/\r\n?/g, '\n') : body);
   }
   await fs.writeFile(manifestFile, JSON.stringify({ version: 1, files }, null, 2) + '\n');
   await checkSite(docs);
