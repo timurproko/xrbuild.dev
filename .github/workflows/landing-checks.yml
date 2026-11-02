@@ -1,0 +1,66 @@
+name: Landing checks
+
+on:
+  pull_request:
+    paths:
+      - site/**
+      - scripts/site.mjs
+      - scripts/site.test.mjs
+      - docs/index.html
+      - docs/favicon*
+      - docs/apple-touch-icon.png
+      - docs/android-chrome-*.png
+      - docs/site.webmanifest
+      - docs/assets/landing/**
+      - docs/assets/social/**
+      - .github/workflows/landing-checks.yml
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - scripts/site.mjs
+      - scripts/site.test.mjs
+      - docs/index.html
+      - docs/favicon*
+      - docs/apple-touch-icon.png
+      - docs/android-chrome-*.png
+      - docs/site.webmanifest
+      - docs/assets/landing/**
+      - docs/assets/social/**
+      - .github/workflows/landing-checks.yml
+
+permissions:
+  contents: read
+
+jobs:
+  landing:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install landing dependencies
+        working-directory: site
+        run: npm ci
+      - name: Build landing
+        working-directory: site
+        run: npm run build
+      - name: Check landing assets
+        working-directory: site
+        run: npm test
+      - name: Install browser for landing checks
+        working-directory: site
+        run: npx playwright install --with-deps chromium
+      - name: Check landing in a browser
+        working-directory: site
+        run: npm run test:browser
+      - name: Verify committed branch output
+        run: |
+          node scripts/site.mjs
+          node --test scripts/site.test.mjs
+          git diff --exit-code -- docs site/landing-output.json
