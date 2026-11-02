@@ -75,8 +75,14 @@ export async function updateLanding(root) {
   for (const relative of files) {
     const target = path.join(docs, ...relative.split('/'));
     await fs.mkdir(path.dirname(target), { recursive: true });
-    const source = path.join(dist, ...relative.split('/')), body = await fs.readFile(source);
-    await fs.writeFile(target, textExtensions.has(path.extname(relative)) ? body.toString('utf8').replace(/\r\n?/g, '\n') : body);
+    const source = path.join(dist, ...relative.split('/')), body = await fs.readFile(source), extension = path.extname(relative);
+    let output = body;
+    if (textExtensions.has(extension)) {
+      let text = body.toString('utf8').replace(/\r\n?/g, '\n');
+      if (extension === '.html') text = text.replace(/^[\t ]*\n/gm, '');
+      output = text;
+    }
+    await fs.writeFile(target, output);
   }
   await fs.writeFile(manifestFile, JSON.stringify({ version: 1, files }, null, 2) + '\n');
   await checkSite(docs);
