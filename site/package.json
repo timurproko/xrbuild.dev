@@ -5,6 +5,7 @@
   "scripts": {
     "assets": "node scripts/generate-assets.mjs",
     "build": "vite build",
+    "build:docs": "vite build && node ../scripts/site.mjs",
     "dev": "vite --host 127.0.0.1 --port 5190 --strictPort",
     "preview": "vite preview --host 127.0.0.1 --port 5191 --strictPort",
     "test": "node --test test/assets.test.mjs",

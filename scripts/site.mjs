@@ -6,9 +6,11 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const json = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
 const sha = (body) => createHash('sha256').update(body).digest('hex');
+const manifestName = 'landing-output.json';
+const textExtensions = new Set(['.css', '.html', '.js', '.json', '.txt', '.webmanifest', '.xml']);
 
-/** Root entries that belong to committed `docs/` only; the landing build may never provide them. */
-export const reserved = ['CNAME', '.nojekyll', '.xrb-publications.json', '.well-known', 'apps', 'uikit'];
+/** Root entries owned by publication state; landing output may never provide them. */
+export const reserved = new Set(['CNAME', '.nojekyll', '.xrb-publications.json', '.well-known', 'apps', 'uikit']);
 
 async function rejectLinks(dir) {
   for (const item of await fs.readdir(dir, { withFileTypes: true })) {
@@ -17,40 +19,77 @@ async function rejectLinks(dir) {
   }
 }
 
-/**
- * Composes the complete site: the committed `docs/` tree (published app routes
- * and site metadata) plus the landing built into `site/dist/`. The landing may
- * only add files; any path that `docs/` already holds, or a reserved root
- * entry, is refused so a landing change can never alter a published route.
- */
-export async function composeSite(root, out) {
-  const docs = path.join(root, 'docs'), dist = path.join(root, 'site', 'dist');
-  if (!(await fs.lstat(docs)).isDirectory()) throw new Error('docs/ must be a directory');
-  await fs.access(path.join(dist, 'index.html')).catch(() => { throw new Error('landing not built: site/dist/index.html missing'); });
-  await rejectLinks(docs); await rejectLinks(dist);
-  await fs.rm(out, { recursive: true, force: true });
-  await fs.cp(docs, out, { recursive: true });
-  for (const entry of await fs.readdir(dist)) if (reserved.includes(entry)) throw new Error(`landing output may not provide ${entry}`);
-  async function overlay(from, to, relative) {
-    for (const item of await fs.readdir(from, { withFileTypes: true })) {
-      const rel = relative ? `${relative}/${item.name}` : item.name;
-      const target = path.join(to, item.name);
-      const existing = await fs.lstat(target).catch(() => null);
-      if (item.isDirectory()) {
-        if (existing && !existing.isDirectory()) throw new Error(`landing output collides with docs/${rel}`);
-        await fs.mkdir(target, { recursive: true });
-        await overlay(path.join(from, item.name), target, rel);
-      } else {
-        if (existing) throw new Error(`landing output collides with docs/${rel}`);
-        await fs.copyFile(path.join(from, item.name), target);
-      }
-    }
-  }
-  await overlay(dist, out, '');
-  return out;
+function safeRelative(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= 240 && !value.includes('\\') &&
+    value.split('/').every((part) => part && part !== '.' && part !== '..') && !path.isAbsolute(value);
 }
 
-/** Checks a complete composed site tree: root files, domain, inventory, route markers and associations. */
+async function filesIn(root) {
+  const files = [];
+  async function visit(dir, prefix = '') {
+    for (const item of await fs.readdir(dir, { withFileTypes: true })) {
+      const relative = prefix ? `${prefix}/${item.name}` : item.name;
+      if (item.isSymbolicLink()) throw new Error(`landing output contains a link: ${relative}`);
+      if (item.isDirectory()) await visit(path.join(dir, item.name), relative);
+      else if (item.isFile()) files.push(relative);
+      else throw new Error(`landing output contains an unsupported entry: ${relative}`);
+    }
+  }
+  await visit(root);
+  return files.sort();
+}
+
+async function removeEmptyParents(file, stop) {
+  let dir = path.dirname(file);
+  while (dir !== stop && path.relative(stop, dir) && !path.relative(stop, dir).startsWith(`..${path.sep}`)) {
+    if ((await fs.readdir(dir).catch(() => ['not-empty'])).length) return;
+    await fs.rmdir(dir);
+    dir = path.dirname(dir);
+  }
+}
+
+/** Safely replaces only files previously recorded as landing output, preserving every publication-owned path. */
+export async function updateLanding(root) {
+  const docs = path.join(root, 'docs'), dist = path.join(root, 'site', 'dist'), manifestFile = path.join(root, 'site', manifestName);
+  if (!(await fs.lstat(docs)).isDirectory() || !(await fs.lstat(dist)).isDirectory()) throw new Error('docs/ and site/dist/ must be directories');
+  await rejectLinks(docs); await rejectLinks(dist);
+  const files = await filesIn(dist);
+  if (!files.includes('index.html')) throw new Error('landing not built: site/dist/index.html missing');
+  for (const relative of files) if (!safeRelative(relative) || reserved.has(relative.split('/')[0])) throw new Error(`landing output may not provide ${relative}`);
+  const previous = await json(manifestFile).catch((error) => {
+    if (error.code === 'ENOENT') return { version: 1, files: [] };
+    throw error;
+  });
+  if (previous.version !== 1 || !Array.isArray(previous.files) || previous.files.some((file) => !safeRelative(file) || reserved.has(file.split('/')[0])) || new Set(previous.files).size !== previous.files.length)
+    throw new Error('landing output manifest is invalid');
+  const old = new Set(previous.files), next = new Set(files);
+  for (const relative of files) {
+    const target = path.join(docs, ...relative.split('/'));
+    if (!old.has(relative) && await fs.lstat(target).catch(() => null)) throw new Error(`landing output collides with docs/${relative}`);
+  }
+  for (const relative of previous.files) if (!next.has(relative)) {
+    const target = path.join(docs, ...relative.split('/'));
+    await fs.rm(target, { force: true });
+    await removeEmptyParents(target, docs);
+  }
+  for (const relative of files) {
+    const target = path.join(docs, ...relative.split('/'));
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    const source = path.join(dist, ...relative.split('/')), body = await fs.readFile(source), extension = path.extname(relative);
+    let output = body;
+    if (textExtensions.has(extension)) {
+      let text = body.toString('utf8').replace(/\r\n?/g, '\n');
+      if (extension === '.html') text = text.replace(/^[\t ]*\n/gm, '');
+      output = text;
+    }
+    await fs.writeFile(target, output);
+  }
+  await fs.writeFile(manifestFile, JSON.stringify({ version: 1, files }, null, 2) + '\n');
+  await checkSite(docs);
+  return files;
+}
+
+/** Checks the directly served docs tree: root files, domain, inventory, route markers and associations. */
 export async function checkSite(site) {
   if (!(await fs.lstat(site)).isDirectory()) throw new Error('site root must be a directory');
   await rejectLinks(site);
@@ -68,4 +107,8 @@ export async function checkSite(site) {
   }
   if (!Array.isArray(await json(path.join(site, '.well-known/assetlinks.json')))) throw new Error('invalid association document');
   return { site, inventory };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
+  updateLanding(path.resolve(import.meta.dirname, '..')).then((files) => console.log(`Updated ${files.length} landing file(s) in docs/`), (error) => { console.error(error.message); process.exitCode = 1; });
 }

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "files": [
+    "android-chrome-192x192.png",
+    "android-chrome-512x512.png",
+    "apple-touch-icon.png",
+    "assets/landing/fonts/OFL.txt",
+    "assets/landing/fonts/archivo-black-OFL.txt",
+    "assets/landing/fonts/archivo-black.ttf",
+    "assets/landing/fonts/space-grotesk-variable.ttf",
+    "assets/landing/index-BbFYgoVV.css",
+    "assets/landing/index-DiPjI0sy.js",
+    "assets/landing/model-license.txt",
+    "assets/landing/optical-glasses-DhD7O48a.glb",
+    "assets/landing/still-desktop.png",
+    "assets/landing/still-mobile.png",
+    "assets/landing/studio-small-Dkr46J8-.hdr",
+    "assets/social/landing-square.png",
+    "assets/social/landing-wide.png",
+    "favicon-16x16.png",
+    "favicon-32x32.png",
+    "favicon.ico",
+    "index.html",
+    "site.webmanifest"
+  ]
+}

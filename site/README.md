@@ -17,6 +17,7 @@ The single-screen XR Build hero: text-only wordmark, headline and subtitle, a li
 npm ci                 # once
 npm run dev            # 127.0.0.1:5190
 npm run build          # dist/
+npm run build:docs     # build and safely update landing-owned files in ../docs/
 npm test               # output and identity checks (needs dist/)
 npm run test:browser   # production-build checks in a headless browser
 npm run assets         # regenerate icons, stills and social images
@@ -26,7 +27,7 @@ Browser checks and asset generation use the pinned Playwright. They prefer its C
 
 ## How it reaches the site
 
-The workflow in `.github/workflows/publish-app.yml` builds this package on every push to `main`, runs its checks, composes `dist/` on top of the committed `docs/` tree and deploys the result to Pages. The landing may only add files: anything `docs/` already holds, including the app routes the control panel publishes, is never replaced, and a collision fails the build.
+Pages serves the committed `docs/` tree directly from `main`. Run `npm run build:docs` after changing the landing, then commit both the source and generated `docs/` output. `site/landing-output.json` records exactly which paths belong to the landing; the update script may replace only those files and refuses publication-owned roots or unowned collisions. The landing-check workflow verifies the committed output but does not deploy it. Route-only publish and unpublish commits therefore trigger Pages directly without rebuilding the landing or starting a custom deployment workflow.
 
 ## Assets and licenses
 
