@@ -2,13 +2,6 @@
   "version": 1,
   "publications": [
     {
-      "id": "31cb8491-7206-40eb-84b7-76cc72bd8ea4",
-      "slug": "launch",
-      "contentHash": "6faffbc446dec234a3d55ad2638d0a6148a4a2b5f5cdc23735e248e27cdd1766",
-      "indexHash": "0ab3d8a1c3c5c3750f17ce911fdc76212ba7095e8336a4feab4bd965c1913d3f",
-      "publishedMs": 1793691981171
-    },
-    {
       "id": "bc7aeb26-ae20-492e-a5c7-f0d0cd95445e",
       "slug": "ui-kit",
       "contentHash": "f57e881de9ba53dba2564192195244ed0bca8b557e7259c02f21999f66834e5e",
